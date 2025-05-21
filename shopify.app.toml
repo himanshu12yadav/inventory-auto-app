@@ -1,0 +1,41 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "bdedceb8a2ff2ad5c23f8a693d9abc94"
+application_url = "https://alter-directed-asthma-sms.trycloudflare.com"
+embedded = true
+name = "inventory-app-auto"
+handle = "inventory-app-auto"
+
+[webhooks]
+api_version = "2025-04"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "inventory_levels/update" ]
+  uri = "/webhooks/inventory_levels/update"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_products,write_products,read_inventory,write_inventory,read_product_listings,read_metaobjects,write_metaobjects, read_locations"
+
+[auth]
+redirect_urls = [
+  "https://alter-directed-asthma-sms.trycloudflare.com/auth/callback",
+  "https://alter-directed-asthma-sms.trycloudflare.com/auth/shopify/callback",
+  "https://alter-directed-asthma-sms.trycloudflare.com/api/auth/callback"
+]
+
+[pos]
+embedded = false
+
+[build]
+dev_store_url = "quickstart-7fb02b5e.myshopify.com"
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
