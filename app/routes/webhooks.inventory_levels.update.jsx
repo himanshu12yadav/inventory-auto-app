@@ -9,6 +9,12 @@ export async function action({ request }) {
     const { admin, topic } = await authenticate.webhook(request);
     console.log("topic: ", topic);
 
+      if (!admin) {
+    console.error("Missing admin session. The shop may need to re-authenticate.");
+    console.error("This error often occurs if the server (hosted on client infrastructure) restarted and the local database was wiped.");
+    return new Response("Unauthorized", { status: 401 });
+  }
+
     if (topic === "INVENTORY_LEVELS_UPDATE") {
       console.log("Processing inventory update");
       await handleInventoryUpdate(admin, payload);
@@ -23,6 +29,9 @@ export async function action({ request }) {
 
 async function handleInventoryUpdate(admin, payload) {
   const { inventory_item_id, location_id, available } = payload;
+
+
+
 
   // Step 1: Get variant and metafield
 
@@ -58,9 +67,9 @@ async function handleInventoryUpdate(admin, payload) {
   const metafieldsEmpty = !variant.metafield || !variant.metafield.value;
 
   let currentData;
-  let allLocations =[];
+  let allLocations = [];
 
-  if (metafieldsEmpty){
+  if (metafieldsEmpty) {
     console.log("Metafield is empty, fetching all inventory data for variant.");
 
     // Fetch all inventory levels for this variant;
@@ -84,18 +93,18 @@ async function handleInventoryUpdate(admin, payload) {
       }
     `;
 
-    const inventoryResponse = await admin.graphql(inventoryQuery,{
-      variables:{
+    const inventoryResponse = await admin.graphql(inventoryQuery, {
+      variables: {
         inventoryItemId: `gid://shopify/InventoryItem/${inventory_item_id}`,
       }
     });
 
     const inventoryData = await inventoryResponse.json();
 
-    console.log("Inventory: ",inventoryData.data.inventoryItem.inventoryLevels.edges[0].node);
-    console.log("Inventory: ",inventoryData.data.inventoryItem.inventoryLevels.edges[1].node);
+    console.log("Inventory: ", inventoryData.data.inventoryItem.inventoryLevels.edges[0].node);
+    console.log("Inventory: ", inventoryData.data.inventoryItem.inventoryLevels.edges[1].node);
 
-    if (inventoryData.errors){
+    if (inventoryData.errors) {
       console.error("Error fetching inventory levels:", inventoryData.errors);
       throw new Error("Failed to fetch inventory levels.");
     }
@@ -117,19 +126,19 @@ async function handleInventoryUpdate(admin, payload) {
       };
     });
 
-    currentData = {locations:allLocations}
+    currentData = { locations: allLocations }
 
     console.log(`Fetched ${allLocations.length} locations for variable`);
 
-  }else{
-    currentData = variant.metafield?.value ? JSON.parse(variant.metafield.value) :{locations:[]}
+  } else {
+    currentData = variant.metafield?.value ? JSON.parse(variant.metafield.value) : { locations: [] }
   }
 
-  if (!metafieldsEmpty || allLocations.length === 0){
+  if (!metafieldsEmpty || allLocations.length === 0) {
 
 
-  // Step 2: Get location name
-  const locationQuery = `
+    // Step 2: Get location name
+    const locationQuery = `
     query GetLocationName($id: ID!) {
       location(id: $id) {
         id
@@ -138,34 +147,34 @@ async function handleInventoryUpdate(admin, payload) {
     }
   `;
 
-  const locationRes = await admin.graphql(locationQuery, {
-    variables: { id: `gid://shopify/Location/${location_id}` },
-  });
+    const locationRes = await admin.graphql(locationQuery, {
+      variables: { id: `gid://shopify/Location/${location_id}` },
+    });
 
-  const locationJson = await locationRes.json();
-  const location = locationJson.data?.location;
+    const locationJson = await locationRes.json();
+    const location = locationJson.data?.location;
 
-  // Step 3: Parse and update metafield data
-  // const currentData = variant.metafield?.value
-  //   ? JSON.parse(variant.metafield.value)
-  //   : { locations: [] };
+    // Step 3: Parse and update metafield data
+    // const currentData = variant.metafield?.value
+    //   ? JSON.parse(variant.metafield.value)
+    //   : { locations: [] };
 
-  const index = currentData.locations.findIndex(
-    (loc) => loc.id === location_id
-  );
+    const index = currentData.locations.findIndex(
+      (loc) => loc.id === location_id
+    );
 
-  const updatedLocation = {
-    id: parseInt(location_id),
-    name: location?.name || `Location ${location_id}`,
-    available:parseInt(available, 10) || 0,
-    updatedAt: new Date().toISOString(),
-  };
+    const updatedLocation = {
+      id: parseInt(location_id),
+      name: location?.name || `Location ${location_id}`,
+      available: parseInt(available, 10) || 0,
+      updatedAt: new Date().toISOString(),
+    };
 
-  if (index >= 0) {
-    currentData.locations[index] = updatedLocation;
-  } else {
-    currentData.locations.push(updatedLocation);
-  }
+    if (index >= 0) {
+      currentData.locations[index] = updatedLocation;
+    } else {
+      currentData.locations.push(updatedLocation);
+    }
 
   }
   // Step 4: Update metafield

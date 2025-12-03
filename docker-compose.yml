@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "3002:3002"
+    volumes:
+      # Mount the prisma directory to persist the SQLite database
+      - ./prisma:/app/prisma
+    environment:
+      # Add your environment variables here
+      - SHOPIFY_API_KEY=1ed238605b42662215848192de206b36
+      - SHOPIFY_API_SECRET=0cee9b6fd994996c2924b98ea75bdb1f
+      - SHOPIFY_APP_URL=https://inventory-app.sprinix.com
+      - SCOPES=write_products,read_products,read_inventory,read_locations
+      - PORT=3002
+      - FRONTEND_PORT=3002
+      - BACKEND_PORT=3002
+      - NODE_ENV=production
+      - DATABASE_URL=file:dev.sqlite
+    restart: unless-stopped
